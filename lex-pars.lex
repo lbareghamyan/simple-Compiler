@@ -1,15 +1,11 @@
 %{
-#include <stdio.h>
-	#include <stdlib.h>
-	#include <string.h>
-	#include "symtab.h"
-	#include "parser.tab.h"
-	extern FILE *yyin;
-	extern FILE *yyout;
- 
-	extern int line_num = 1; // initialize to 1
-	void ret_print(char *token_type);
-	void yyerror();
+#include <string.h>
+#include "lex-pars.h"
+#include "y.tab.h"
+#define yywrap() 1
+#define YY_SKIP_YYWRAP
+
+extern int line_num;
 
 %}
 
@@ -17,10 +13,6 @@ DIGIT [0-9]
 LETTER [a-zA-Z]
 print	[ -~]
 
-ID {LETTER}[0-9a-zA-Z]*
-ICONST	"0"|[1-9]{DIGIT}*
-FCONST	"0"|{DIGIT}*"."{DIGIT}+
-CCONST	(\'{print}\')|(\'\\[nftrbv]\')
 
 %%
 
@@ -54,15 +46,13 @@ CCONST	(\'{print}\')|(\'\\[nftrbv]\')
 
 "const" {printf("<'const' , CONST>\n"); return CONST;}
 
-{ID} 			{
-					// insert identifier into symbol table
-					insert(yytext, strlen(yytext), UNDEF, lineno);
-					return ID;
-				}
-{ICONST} 		{ return ICONST; }
-{FCONST} 		{ return FCONST; }
-{CCONST} 		{ return CCONST; }
+"0"|[1-9]{DIGIT}*				{ return ICONST; }
 
+"0"|{DIGIT}*"."{DIGIT}+ 		{ return FCONST; }
+
+(\'{print}\')|(\'\\[nftrbv]\')		{ return CCONST; }
+
+{LETTER}[0-9a-zA-Z]* { printf("<id, ID>\n"); yylval.id = strdup(yytext); return ID; }
 
 {DIGIT}+  { printf("<num, NUMBER>\n"); yylval.num = atof(yytext); return NUMBER; }
 
@@ -117,5 +107,6 @@ CCONST	(\'{print}\')|(\'\\[nftrbv]\')
 . { printf("error token: %s on line %d\n", yytext, line_num); yymore(); }
 
 %%
+
 
 
